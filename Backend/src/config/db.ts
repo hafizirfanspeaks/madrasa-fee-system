@@ -6,7 +6,6 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGO_URI environment variable inside .env');
 }
 
-// Global cache for serverless environment
 let cached = (global as any).mongoose;
 
 if (!cached) {
