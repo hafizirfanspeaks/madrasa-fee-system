@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion, AnimatePresence } from 'framer-motion'; // Framer Motion
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,27 +17,40 @@ const loginSchema = z.object({
   password: z.string().min(6, "پاس ورڈ کم از کم 6 حروف کا ہو / Min 6 characters"),
 });
 
+type LoginFormData = z.infer<typeof loginSchema>;
+
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
       const response = await apiClient.post('/auth/login', data);
-      if (response.data.success) {
-        login(response.data.data, response.data.data.token);
+      
+      // 🔥 Professional Fix: Response structure ko safely handle karna
+      const responseData = response.data.data || response.data;
+      
+      if (responseData.token) {
+        // Zustand store mein user aur token save karein
+        login(responseData, responseData.token);
+        
         toast.success('کامیابی سے لاگ ان ہو گئے ہیں!');
+        
+        // 🔥 Dashboard ya Home page par redirect karein
         navigate('/'); 
+      } else {
+        toast.error('ٹوکن موصول نہیں ہوئی، دوبارہ کوشش کریں');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'لاگ ان میں مسئلہ آیا');
+      console.error("Login Error:", error);
+      toast.error(error.response?.data?.message || 'ای میل یا پاس ورڈ غلط ہے');
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +103,6 @@ export default function Login() {
           className="text-center mb-10"
         >
           <motion.div variants={itemVariants} className="flex justify-center mb-6">
-            {/* 🔥 Fixed: bg-linear-to-br for Tailwind v4 */}
             <div className="bg-linear-to-br from-emerald-500 to-teal-700 w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-200/50 hover:scale-105 hover:rotate-3 transition-all duration-300">
               <LogIn size={40} className="text-white ml-1" />
             </div>
